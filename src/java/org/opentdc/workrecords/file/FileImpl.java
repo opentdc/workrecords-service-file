@@ -1,3 +1,26 @@
+/**
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2015 Arbalo AG
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
 package org.opentdc.workrecords.file;
 
 import java.io.File;
@@ -11,19 +34,23 @@ import java.io.Reader;
 import java.io.Writer;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.logging.Logger;
 
 import javax.servlet.ServletContext;
 
-import org.opentdc.exception.DuplicateException;
-import org.opentdc.exception.NotFoundException;
-import org.opentdc.workrecords.StorageProvider;
+import org.opentdc.service.exception.DuplicateException;
+import org.opentdc.service.exception.NotFoundException;
+import org.opentdc.workrecords.ServiceProvider;
 import org.opentdc.workrecords.WorkRecordModel;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
-public class FileImpl extends StorageProvider {
+public class FileImpl implements ServiceProvider {
+	
 	private static final String SEED_FN = "/seed.json";
 	private static final String DATA_FN = "/data.json";
 	private static File dataF = null;
@@ -32,10 +59,25 @@ public class FileImpl extends StorageProvider {
 	// instance variables
 	private boolean isPersistent = true;
 
+	protected static Map<String, WorkRecordModel> index = null;
+
+	// instance variables
+	protected Logger logger = Logger.getLogger(this.getClass().getName());
+
+	public void initStorageProvider() {
+		logger.info("> initStorageProvider()");
+
+		if (index == null) {
+			index = new HashMap<String, WorkRecordModel>();
+		}
+
+		logger.info("initStorageProvider() initialized");
+	}
+	
 	public FileImpl(ServletContext context, boolean makePersistent) {
 		logger.info("> FileImpl()");
 
-		super.initStorageProvider();
+		initStorageProvider();
 
 		isPersistent = makePersistent;
 		if (dataF == null) {
@@ -148,7 +190,7 @@ public class FileImpl extends StorageProvider {
 				try {
 					dataF.createNewFile();
 				} catch (IOException e) {
-					logger.error("importJson(): IO exception when creating file "
+					logger.severe("importJson(): IO exception when creating file "
 							+ dataF.getName());
 					e.printStackTrace();
 				}
@@ -162,13 +204,13 @@ public class FileImpl extends StorageProvider {
 	private ArrayList<WorkRecordModel> importJson(File f) throws NotFoundException {
 		logger.info("importJson(" + f.getName() + "): importing WorkRecordsData");
 		if (!f.exists()) {
-			logger.error("importJson(" + f.getName()
+			logger.severe("importJson(" + f.getName()
 					+ "): file does not exist.");
 			throw new NotFoundException("File " + f.getName()
 					+ " does not exist.");
 		}
 		if (!f.canRead()) {
-			logger.error("importJson(" + f.getName()
+			logger.severe("importJson(" + f.getName()
 					+ "): file is not readable");
 			throw new NotFoundException("File " + f.getName()
 					+ " is not readable.");
@@ -186,7 +228,7 @@ public class FileImpl extends StorageProvider {
 			_workrecords = _gson.fromJson(_reader, _collectionType);
 			logger.info("importJson(" + f.getName() + "): json data converted");
 		} catch (FileNotFoundException e1) {
-			logger.error("importJson(" + f.getName()
+			logger.severe("importJson(" + f.getName()
 					+ "): file does not exist (2).");
 			e1.printStackTrace();
 		} finally {
@@ -195,7 +237,7 @@ public class FileImpl extends StorageProvider {
 					_reader.close();
 				}
 			} catch (IOException e) {
-				logger.error("importJson(" + f.getName()
+				logger.severe("importJson(" + f.getName()
 						+ "): IOException when closing the reader.");
 				e.printStackTrace();
 			}
@@ -213,14 +255,14 @@ public class FileImpl extends StorageProvider {
 			Gson _gson = new GsonBuilder().create();
 			_gson.toJson(index.values(), _writer);
 		} catch (FileNotFoundException e) {
-			logger.error("exportJson(" + f.getName() + "): file not found.");
+			logger.severe("exportJson(" + f.getName() + "): file not found.");
 			e.printStackTrace();
 		} finally {
 			if (_writer != null) {
 				try {
 					_writer.close();
 				} catch (IOException e) {
-					logger.error("exportJson(" + f.getName()
+					logger.severe("exportJson(" + f.getName()
 							+ "): IOException when closing the reader.");
 					e.printStackTrace();
 				}
