@@ -62,7 +62,7 @@ public class FileServiceProvider implements ServiceProvider {
 	protected static Map<String, WorkRecordModel> index = null;
 
 	// instance variables
-	protected Logger logger = Logger.getLogger(this.getClass().getName());
+	protected static final Logger logger = Logger.getLogger(FileServiceProvider.class.getName());
 
 	private void initStorageProvider(
 	) {
