@@ -97,7 +97,12 @@ public class FileServiceProvider implements ServiceProvider {
 	}
 
 	@Override
-	public ArrayList<WorkRecordModel> listWorkRecords() {
+	public ArrayList<WorkRecordModel> listWorkRecords(
+		String queryType,
+		String query,
+		long position,
+		long size
+	) {
 		logger.info("listWorkRecords() -> " + countWorkRecords() + " values");
 		return new ArrayList<WorkRecordModel>(index.values());
 	}
@@ -130,15 +135,20 @@ public class FileServiceProvider implements ServiceProvider {
 	}
 
 	@Override
-	public WorkRecordModel updateWorkRecord(WorkRecordModel workrecord) throws NotFoundException {
-		// it does not matter whether an object with the same ID already
-		// exists. It is either replaced or created.
-		index.put(workrecord.getId(), workrecord);
-		logger.info("updateWorkRecord(" + workrecord + ")");
-		if (isPersistent) {
-			exportJson(dataF);
+	public WorkRecordModel updateWorkRecord(
+		String id,
+		WorkRecordModel workrecord
+	) throws NotFoundException {
+		if(index.get(id) == null) {
+			throw new NotFoundException();
+		} else {
+			index.put(id, workrecord);
+			logger.info("updateWorkRecord(" + workrecord + ")");
+			if (isPersistent) {
+				exportJson(dataF);
+			}
+			return workrecord;
 		}
-		return workrecord;
 	}
 
 	@Override
