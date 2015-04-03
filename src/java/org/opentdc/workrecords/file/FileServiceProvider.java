@@ -59,30 +59,15 @@ public class FileServiceProvider implements ServiceProvider {
 	// instance variables
 	private boolean isPersistent = true;
 
-	protected static Map<String, WorkRecordModel> index = null;
+	protected static Map<String, WorkRecordModel> index = new HashMap<String, WorkRecordModel>();
 
 	// instance variables
 	protected static final Logger logger = Logger.getLogger(FileServiceProvider.class.getName());
 
-	private void initStorageProvider(
-	) {
-		logger.info("> initStorageProvider()");
-
-		if (index == null) {
-			index = new HashMap<String, WorkRecordModel>();
-		}
-
-		logger.info("initStorageProvider() initialized");
-	}
-	
 	public FileServiceProvider(
 		ServletContext context, 
 		String prefix
 	) {
-		logger.info("> FileImpl()");
-
-		initStorageProvider();
-
 		if (dataF == null) {
 			dataF = new File(context.getRealPath("/" + prefix + DATA_FN));
 		}
@@ -92,8 +77,6 @@ public class FileServiceProvider implements ServiceProvider {
 		if (index.size() == 0) {
 			importJson();
 		}
-
-		logger.info("FileImpl() initialized");
 	}
 
 	@Override
