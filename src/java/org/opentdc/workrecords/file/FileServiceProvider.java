@@ -214,16 +214,14 @@ public class FileServiceProvider implements ServiceProvider {
 	private ArrayList<WorkRecordModel> importJson(File f) throws NotFoundException {
 		logger.info("importJson(" + f.getName() + "): importing WorkRecordsData");
 		if (!f.exists()) {
-			logger.severe("importJson(" + f.getName()
+			logger.warning("importJson(" + f.getName()
 					+ "): file does not exist.");
-			throw new NotFoundException("File " + f.getName()
-					+ " does not exist.");
+			return new ArrayList<WorkRecordModel>();
 		}
 		if (!f.canRead()) {
-			logger.severe("importJson(" + f.getName()
+			logger.warning("importJson(" + f.getName()
 					+ "): file is not readable");
-			throw new NotFoundException("File " + f.getName()
-					+ " is not readable.");
+			return new ArrayList<WorkRecordModel>();
 		}
 		logger.info("importJson(" + f.getName() + "): can read the file.");
 
