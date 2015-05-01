@@ -36,6 +36,7 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.logging.Logger;
 
 import javax.servlet.ServletContext;
@@ -94,18 +95,31 @@ public class FileServiceProvider implements ServiceProvider {
 	public WorkRecordModel createWorkRecord(WorkRecordModel workrecord) throws DuplicateException {
 		logger.info("createWorkRecord(" + workrecord + ")");
 		String _id = workrecord.getId();
-		if (_id != null && _id != "" && index.get(workrecord.getId()) != null) {
-			// object with same ID exists already
-			throw new DuplicateException();
+		if (_id == null || _id == "") {
+			_id = UUID.randomUUID().toString();
+		} else {
+			if (index.get(_id) != null) {
+				// object with same ID exists already
+				throw new DuplicateException();				
+			}
 		}
-		WorkRecordModel _workrecord = new WorkRecordModel(workrecord, true);
+		WorkRecordModel _workrecord = new WorkRecordModel(
+				workrecord.getProjectId(),
+				workrecord.getResourceId(),
+				workrecord.getStartAt(),
+				workrecord.getDurationHours(),
+				workrecord.getDurationMinutes(),
+				workrecord.getRateId(),
+				workrecord.isBillable(),
+				workrecord.getComment());
+		_workrecord.setId(_id);
 		index.put(_workrecord.getId(), _workrecord);
 		if (isPersistent) {
 			exportJson(dataF);
 		}
 		return _workrecord;
 	}
-
+	
 	@Override
 	public WorkRecordModel readWorkRecord(String id) throws NotFoundException {
 		WorkRecordModel _workrecord = index.get(id);
