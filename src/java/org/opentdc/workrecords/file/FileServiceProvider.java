@@ -35,7 +35,10 @@ import javax.servlet.ServletContext;
 
 import org.opentdc.file.AbstractFileServiceProvider;
 import org.opentdc.service.exception.DuplicateException;
+import org.opentdc.service.exception.InternalServerErrorException;
 import org.opentdc.service.exception.NotFoundException;
+import org.opentdc.service.exception.ValidationException;
+import org.opentdc.util.PrettyPrinter;
 import org.opentdc.workrecords.ServiceProvider;
 import org.opentdc.workrecords.WorkRecordModel;
 
@@ -65,37 +68,36 @@ public class FileServiceProvider extends AbstractFileServiceProvider<WorkRecordM
 		long position,
 		long size
 	) {
-		logger.info("listWorkRecords() -> " + countWorkRecords() + " values");
+		logger.info("listWorkRecords() -> " + index.size() + " values");
 		return new ArrayList<WorkRecordModel>(index.values());
 	}
 
 	@Override
-	public WorkRecordModel createWorkRecord(WorkRecordModel workrecord) throws DuplicateException {
-		logger.info("createWorkRecord(" + workrecord + ")");
+	public WorkRecordModel createWorkRecord(
+			WorkRecordModel workrecord) 
+		throws DuplicateException, ValidationException {
+		logger.info("createWorkRecord(" + PrettyPrinter.prettyPrintAsJSON(workrecord) + ")");
 		String _id = workrecord.getId();
 		if (_id == null || _id == "") {
 			_id = UUID.randomUUID().toString();
 		} else {
 			if (index.get(_id) != null) {
 				// object with same ID exists already
-				throw new DuplicateException();				
+				throw new DuplicateException("workrecord <" + _id + 
+						"> exists already.");				
+			}
+			else { // a new ID was set on the client; we do not allow this
+				throw new ValidationException("workrecord <" + _id +
+						"> contains an ID generated on the client. This is not allowed.");
 			}
 		}
-		WorkRecordModel _workrecord = new WorkRecordModel(
-				workrecord.getProjectId(),
-				workrecord.getResourceId(),
-				workrecord.getStartAt(),
-				workrecord.getDurationHours(),
-				workrecord.getDurationMinutes(),
-				workrecord.getRateId(),
-				workrecord.isBillable(),
-				workrecord.getComment());
-		_workrecord.setId(_id);
-		index.put(_workrecord.getId(), _workrecord);
+		workrecord.setId(_id);
+		index.put(_id, workrecord);
+		logger.info("createWorkRecord() -> " + PrettyPrinter.prettyPrintAsJSON(workrecord));
 		if (isPersistent) {
 			exportJson(index.values());
 		}
-		return _workrecord;
+		return workrecord;
 	}
 	
 	@Override
@@ -127,27 +129,21 @@ public class FileServiceProvider extends AbstractFileServiceProvider<WorkRecordM
 	}
 
 	@Override
-	public void deleteWorkRecord(String id) throws NotFoundException {
+	public void deleteWorkRecord(
+			String id) 
+		throws NotFoundException, InternalServerErrorException {
 		WorkRecordModel _workrecord = index.get(id);
-		;
 		if (_workrecord == null) {
-			throw new NotFoundException("deleteWorkRecord(" + id
-					+ "): no such workrecord was found.");
+			throw new NotFoundException("workRecord <" + id
+					+ "> was not found.");
 		}
-		index.remove(id);
+		if (index.remove(id) == null) {
+			throw new InternalServerErrorException("workRecord <" + id
+					+ "> can not be removed, because it does not exist in the index.");
+		}
 		logger.info("deleteWorkRecord(" + id + ")");
 		if (isPersistent) {
 			exportJson(index.values());
 		}
-	}
-
-	@Override
-	public int countWorkRecords() {
-		int _count = -1;
-		if (index != null) {
-			_count = index.values().size();
-		}
-		logger.info("countWorkRecords() = " + _count);
-		return _count;
 	}
 }
