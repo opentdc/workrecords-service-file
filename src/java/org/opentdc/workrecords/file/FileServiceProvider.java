@@ -25,6 +25,7 @@ package org.opentdc.workrecords.file;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +37,7 @@ import javax.servlet.ServletContext;
 import org.opentdc.file.AbstractFileServiceProvider;
 import org.opentdc.service.exception.DuplicateException;
 import org.opentdc.service.exception.InternalServerErrorException;
+import org.opentdc.service.exception.NotAllowedException;
 import org.opentdc.service.exception.NotFoundException;
 import org.opentdc.service.exception.ValidationException;
 import org.opentdc.util.PrettyPrinter;
@@ -92,6 +94,11 @@ public class FileServiceProvider extends AbstractFileServiceProvider<WorkRecordM
 			}
 		}
 		workrecord.setId(_id);
+		Date _date = new Date();
+		workrecord.setCreatedAt(_date);
+		workrecord.setCreatedBy("DUMMY_USER");
+		workrecord.setModifiedAt(_date);
+		workrecord.setModifiedBy("DUMMY_USER");
 		index.put(_id, workrecord);
 		logger.info("createWorkRecord() -> " + PrettyPrinter.prettyPrintAsJSON(workrecord));
 		if (isPersistent) {
@@ -101,11 +108,13 @@ public class FileServiceProvider extends AbstractFileServiceProvider<WorkRecordM
 	}
 	
 	@Override
-	public WorkRecordModel readWorkRecord(String id) throws NotFoundException {
+	public WorkRecordModel readWorkRecord(
+			String id) 
+			throws NotFoundException {
 		WorkRecordModel _workrecord = index.get(id);
 		if (_workrecord == null) {
-			throw new NotFoundException("no workrecord with ID <" + id
-					+ "> was found.");
+			throw new NotFoundException("workrecord <" + id
+					+ "> was not found.");
 		}
 		logger.info("readWorkRecord(" + id + ") -> " + _workrecord);
 		return _workrecord;
@@ -115,17 +124,34 @@ public class FileServiceProvider extends AbstractFileServiceProvider<WorkRecordM
 	public WorkRecordModel updateWorkRecord(
 		String id,
 		WorkRecordModel workrecord
-	) throws NotFoundException {
-		if(index.get(id) == null) {
-			throw new NotFoundException();
-		} else {
-			index.put(id, workrecord);
-			logger.info("updateWorkRecord(" + workrecord + ")");
-			if (isPersistent) {
-				exportJson(index.values());
-			}
-			return workrecord;
+	) throws NotFoundException, NotAllowedException
+	{
+		WorkRecordModel _wrm = index.get(id);
+		if(_wrm == null) {
+			throw new NotFoundException("workrecord <" + id + "> was not found.");
 		}
+		if (! _wrm.getCreatedAt().equals(workrecord.getCreatedAt())) {
+			throw new NotAllowedException("workrecord <" + id + ">: it is not allowed to change createdAt on the client.");
+		}
+		if (! _wrm.getCreatedBy().equalsIgnoreCase(workrecord.getCreatedBy())) {
+			throw new NotAllowedException("workrecord <" + id + ">: it is not allowed to change createdBy on the client.");		
+		}
+		_wrm.setProjectId(workrecord.getProjectId());
+		_wrm.setResourceId(workrecord.getResourceId());
+		_wrm.setStartAt(workrecord.getStartAt());
+		_wrm.setDurationHours(workrecord.getDurationHours());
+		_wrm.setDurationMinutes(workrecord.getDurationMinutes());
+		_wrm.setRateId(workrecord.getRateId());
+		_wrm.setBillable(workrecord.isBillable());
+		_wrm.setComment(workrecord.getComment());
+		_wrm.setModifiedAt(workrecord.getModifiedAt());
+		_wrm.setModifiedBy(workrecord.getModifiedBy());
+		index.put(id, _wrm);
+		logger.info("updateWorkRecord(" + id + ") -> " + PrettyPrinter.prettyPrintAsJSON(_wrm));
+		if (isPersistent) {
+			exportJson(index.values());
+		}
+		return _wrm;
 	}
 
 	@Override
