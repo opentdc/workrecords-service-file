@@ -25,6 +25,7 @@ package org.opentdc.workrecords.file;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -65,13 +66,22 @@ public class FileServiceProvider extends AbstractFileServiceProvider<WorkRecordM
 
 	@Override
 	public ArrayList<WorkRecordModel> listWorkRecords(
-		String queryType,
 		String query,
+		String queryType,
 		long position,
 		long size
 	) {
-		logger.info("listWorkRecords() -> " + index.size() + " values");
-		return new ArrayList<WorkRecordModel>(index.values());
+		ArrayList<WorkRecordModel> _workRecords = new ArrayList<WorkRecordModel>(index.values());
+		Collections.sort(_workRecords, WorkRecordModel.WorkRecordComparator);
+		ArrayList<WorkRecordModel> _selection = new ArrayList<WorkRecordModel>();
+		for (int i = 0; i < _workRecords.size(); i++) {
+			if (i >= position && i < (position + size)) {
+				_selection.add(_workRecords.get(i));
+			}			
+		}
+		logger.info("list(<" + query + ">, <" + queryType + 
+				">, <" + position + ">, <" + size + ">) -> " + _selection.size() + " workrecords.");
+		return _selection;
 	}
 
 	@Override
