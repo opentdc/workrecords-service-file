@@ -38,7 +38,6 @@ import javax.servlet.ServletContext;
 import org.opentdc.file.AbstractFileServiceProvider;
 import org.opentdc.service.exception.DuplicateException;
 import org.opentdc.service.exception.InternalServerErrorException;
-import org.opentdc.service.exception.NotAllowedException;
 import org.opentdc.service.exception.NotFoundException;
 import org.opentdc.service.exception.ValidationException;
 import org.opentdc.util.PrettyPrinter;
@@ -134,17 +133,17 @@ public class FileServiceProvider extends AbstractFileServiceProvider<WorkRecordM
 	public WorkRecordModel updateWorkRecord(
 		String id,
 		WorkRecordModel workrecord
-	) throws NotFoundException, NotAllowedException
+	) throws NotFoundException, ValidationException
 	{
 		WorkRecordModel _wrm = index.get(id);
 		if(_wrm == null) {
 			throw new NotFoundException("workrecord <" + id + "> was not found.");
 		}
 		if (! _wrm.getCreatedAt().equals(workrecord.getCreatedAt())) {
-			throw new NotAllowedException("workrecord <" + id + ">: it is not allowed to change createdAt on the client.");
+			throw new ValidationException("workrecord <" + id + ">: it is not allowed to change createdAt on the client.");
 		}
 		if (! _wrm.getCreatedBy().equalsIgnoreCase(workrecord.getCreatedBy())) {
-			throw new NotAllowedException("workrecord <" + id + ">: it is not allowed to change createdBy on the client.");		
+			throw new ValidationException("workrecord <" + id + ">: it is not allowed to change createdBy on the client.");		
 		}
 		_wrm.setProjectId(workrecord.getProjectId());
 		_wrm.setResourceId(workrecord.getResourceId());
@@ -154,8 +153,8 @@ public class FileServiceProvider extends AbstractFileServiceProvider<WorkRecordM
 		_wrm.setRateId(workrecord.getRateId());
 		_wrm.setBillable(workrecord.isBillable());
 		_wrm.setComment(workrecord.getComment());
-		_wrm.setModifiedAt(workrecord.getModifiedAt());
-		_wrm.setModifiedBy(workrecord.getModifiedBy());
+		_wrm.setModifiedAt(new Date());
+		_wrm.setModifiedBy("DUMMY_USER");
 		index.put(id, _wrm);
 		logger.info("updateWorkRecord(" + id + ") -> " + PrettyPrinter.prettyPrintAsJSON(_wrm));
 		if (isPersistent) {
