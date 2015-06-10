@@ -145,7 +145,10 @@ public class FileServiceProvider extends AbstractFileServiceProvider<WorkRecordM
 		if (! _wrm.getCreatedBy().equalsIgnoreCase(workrecord.getCreatedBy())) {
 			throw new ValidationException("workrecord <" + id + ">: it is not allowed to change createdBy on the client.");		
 		}
+		_wrm.setCompanyId(workrecord.getCompanyId());
+		_wrm.setCompanyTitle(workrecord.getCompanyTitle());
 		_wrm.setProjectId(workrecord.getProjectId());
+		_wrm.setProjectTitle(workrecord.getProjectTitle());
 		_wrm.setResourceId(workrecord.getResourceId());
 		_wrm.setStartAt(workrecord.getStartAt());
 		_wrm.setDurationHours(workrecord.getDurationHours());
