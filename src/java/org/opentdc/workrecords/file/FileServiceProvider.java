@@ -102,6 +102,31 @@ public class FileServiceProvider extends AbstractFileServiceProvider<WorkRecordM
 						"> contains an ID generated on the client. This is not allowed.");
 			}
 		}
+		// validate mandatory attributes
+		if (workrecord.getCompanyId() == null || workrecord.getCompanyId().length() == 0) {
+			throw new ValidationException("workrecord <" + _id + 
+					"> must contain a valid companyId.");
+		}
+		if (workrecord.getCompanyTitle() == null || workrecord.getCompanyTitle().length() == 0) {
+			throw new ValidationException("workrecord <" + _id + 
+					"> must contain a valid companyTitle.");
+		}
+		if (workrecord.getProjectId() == null || workrecord.getProjectId().length() == 0) {
+			throw new ValidationException("workrecord <" + _id + 
+					"> must contain a valid projectId.");
+		}
+		if (workrecord.getProjectTitle() == null || workrecord.getProjectTitle().length() == 0) {
+			throw new ValidationException("workrecord <" + _id + 
+					"> must contain a valid projectTitle.");
+		}
+		if (workrecord.getResourceId() == null || workrecord.getResourceId().length() == 0) {
+			throw new ValidationException("workrecord <" + _id + 
+					"> must contain a valid resourceId.");
+		}
+		if (workrecord.getStartAt() == null) {
+			throw new ValidationException("workrecord <" + _id + 
+					"> must contain a valid startAt date.");
+		}
 		workrecord.setId(_id);
 		Date _date = new Date();
 		workrecord.setCreatedAt(_date);
