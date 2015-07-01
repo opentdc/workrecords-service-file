@@ -165,10 +165,12 @@ public class FileServiceProvider extends AbstractFileServiceProvider<WorkRecordM
 			throw new NotFoundException("workrecord <" + id + "> was not found.");
 		}
 		if (! _wrm.getCreatedAt().equals(workrecord.getCreatedAt())) {
-			throw new ValidationException("workrecord <" + id + ">: it is not allowed to change createdAt on the client.");
+			logger.warning("workrecord <" + id + ">: ignoring createdAt value <" + 
+					workrecord.getCreatedAt().toString() + "> because it was set on the client.");
 		}
 		if (! _wrm.getCreatedBy().equalsIgnoreCase(workrecord.getCreatedBy())) {
-			throw new ValidationException("workrecord <" + id + ">: it is not allowed to change createdBy on the client.");		
+			logger.warning("workrecord <" + id + ">: ignoring createdBy value <" +
+					workrecord.getCreatedBy() + ">: because it was set on the client.");		
 		}
 		_wrm.setCompanyId(workrecord.getCompanyId());
 		_wrm.setCompanyTitle(workrecord.getCompanyTitle());
