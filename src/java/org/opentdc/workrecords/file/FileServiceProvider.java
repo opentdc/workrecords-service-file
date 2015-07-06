@@ -103,25 +103,29 @@ public class FileServiceProvider extends AbstractFileServiceProvider<WorkRecordM
 			}
 		}
 		// validate mandatory attributes
-		if (workrecord.getCompanyId() == null || workrecord.getCompanyId().length() == 0) {
+		if (workrecord.getCompanyId() == null || workrecord.getCompanyId().isEmpty()) {
 			throw new ValidationException("workrecord <" + _id + 
 					"> must contain a valid companyId.");
 		}
-		if (workrecord.getCompanyTitle() == null || workrecord.getCompanyTitle().length() == 0) {
+		if (workrecord.getCompanyTitle() == null || workrecord.getCompanyTitle().isEmpty()) {
 			throw new ValidationException("workrecord <" + _id + 
 					"> must contain a valid companyTitle.");
 		}
-		if (workrecord.getProjectId() == null || workrecord.getProjectId().length() == 0) {
+		if (workrecord.getProjectId() == null || workrecord.getProjectId().isEmpty()) {
 			throw new ValidationException("workrecord <" + _id + 
 					"> must contain a valid projectId.");
 		}
-		if (workrecord.getProjectTitle() == null || workrecord.getProjectTitle().length() == 0) {
+		if (workrecord.getProjectTitle() == null || workrecord.getProjectTitle().isEmpty()) {
 			throw new ValidationException("workrecord <" + _id + 
 					"> must contain a valid projectTitle.");
 		}
-		if (workrecord.getResourceId() == null || workrecord.getResourceId().length() == 0) {
+		if (workrecord.getResourceId() == null || workrecord.getResourceId().isEmpty()) {
 			throw new ValidationException("workrecord <" + _id + 
 					"> must contain a valid resourceId.");
+		}
+		if (workrecord.getRateId() == null || workrecord.getRateId().isEmpty()) {
+			throw new ValidationException("workrecord <" + _id + 
+					"> must contain a valid rateId.");
 		}
 		if (workrecord.getStartAt() == null) {
 			throw new ValidationException("workrecord <" + _id + 
