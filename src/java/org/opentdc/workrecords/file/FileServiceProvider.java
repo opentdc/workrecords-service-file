@@ -130,9 +130,9 @@ public class FileServiceProvider extends AbstractFileServiceProvider<WorkRecordM
 		workrecord.setId(_id);
 		Date _date = new Date();
 		workrecord.setCreatedAt(_date);
-		workrecord.setCreatedBy("DUMMY_USER");
+		workrecord.setCreatedBy(getPrincipal());
 		workrecord.setModifiedAt(_date);
-		workrecord.setModifiedBy("DUMMY_USER");
+		workrecord.setModifiedBy(getPrincipal());
 		index.put(_id, workrecord);
 		logger.info("createWorkRecord() -> " + PrettyPrinter.prettyPrintAsJSON(workrecord));
 		if (isPersistent) {
@@ -184,7 +184,7 @@ public class FileServiceProvider extends AbstractFileServiceProvider<WorkRecordM
 		_wrm.setBillable(workrecord.isBillable());
 		_wrm.setComment(workrecord.getComment());
 		_wrm.setModifiedAt(new Date());
-		_wrm.setModifiedBy("DUMMY_USER");
+		_wrm.setModifiedBy(getPrincipal());
 		index.put(id, _wrm);
 		logger.info("updateWorkRecord(" + id + ") -> " + PrettyPrinter.prettyPrintAsJSON(_wrm));
 		if (isPersistent) {
