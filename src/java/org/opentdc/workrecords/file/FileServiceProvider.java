@@ -67,8 +67,8 @@ public class FileServiceProvider extends AbstractFileServiceProvider<WorkRecordM
 	public ArrayList<WorkRecordModel> listWorkRecords(
 		String query,
 		String queryType,
-		long position,
-		long size
+		int position,
+		int size
 	) {
 		ArrayList<WorkRecordModel> _workRecords = new ArrayList<WorkRecordModel>(index.values());
 		Collections.sort(_workRecords, WorkRecordModel.WorkRecordComparator);
