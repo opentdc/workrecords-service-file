@@ -164,6 +164,7 @@ public class FileServiceProvider extends AbstractFileServiceProvider<WorkRecordM
 		WorkRecordModel workrecord
 	) throws NotFoundException, ValidationException
 	{
+		logger.info("updateWorkRecord(" + id + ", " + PrettyPrinter.prettyPrintAsJSON(workrecord) + ")");
 		WorkRecordModel _wrm = index.get(id);
 		if(_wrm == null) {
 			throw new NotFoundException("workrecord <" + id + "> was not found.");
@@ -176,11 +177,26 @@ public class FileServiceProvider extends AbstractFileServiceProvider<WorkRecordM
 			logger.warning("workrecord <" + id + ">: ignoring createdBy value <" +
 					workrecord.getCreatedBy() + ">: because it was set on the client.");		
 		}
-		_wrm.setCompanyId(workrecord.getCompanyId());
-		_wrm.setCompanyTitle(workrecord.getCompanyTitle());
-		_wrm.setProjectId(workrecord.getProjectId());
-		_wrm.setProjectTitle(workrecord.getProjectTitle());
-		_wrm.setResourceId(workrecord.getResourceId());
+		if (! _wrm.getCompanyId().equalsIgnoreCase(workrecord.getCompanyId())) {
+			throw new ValidationException("workrecord <" + id + 
+					">: it is not allowed to change the companyId.");
+		}
+		if (! _wrm.getProjectId().equalsIgnoreCase(workrecord.getProjectId())) {
+			throw new ValidationException("workrecord <" + id + 
+					">: it is not allowed to change the projectId.");
+		}
+		if (! _wrm.getResourceId().equalsIgnoreCase(workrecord.getResourceId())) {
+			throw new ValidationException("workrecord <" + id + 
+					">: it is not allowed to change the resourceId.");
+		}
+		if (! _wrm.getCompanyTitle().equalsIgnoreCase(workrecord.getCompanyTitle())) {
+			logger.warning("workrecord <" + id + ">: ignoring companyTitle value <" +
+					workrecord.getCompanyTitle() + ">, because it is a derived attribute and can not be changed.");
+		}
+		if (! _wrm.getProjectTitle().equalsIgnoreCase(workrecord.getProjectTitle())) {
+			logger.warning("workrecord <" + id + ">: ignoring projectTitle value <" +
+					workrecord.getProjectTitle() + ">, because it is a derived attribute and can not be changed.");
+		}
 		_wrm.setStartAt(workrecord.getStartAt());
 		_wrm.setDurationHours(workrecord.getDurationHours());
 		_wrm.setDurationMinutes(workrecord.getDurationMinutes());
