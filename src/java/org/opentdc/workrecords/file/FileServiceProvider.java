@@ -123,10 +123,6 @@ public class FileServiceProvider extends AbstractFileServiceProvider<WorkRecordM
 			throw new ValidationException("workrecord <" + _id + 
 					"> must contain a valid resourceId.");
 		}
-		if (workrecord.getRateId() == null || workrecord.getRateId().isEmpty()) {
-			throw new ValidationException("workrecord <" + _id + 
-					"> must contain a valid rateId.");
-		}
 		if (workrecord.getStartAt() == null) {
 			throw new ValidationException("workrecord <" + _id + 
 					"> must contain a valid startAt date.");
@@ -200,7 +196,6 @@ public class FileServiceProvider extends AbstractFileServiceProvider<WorkRecordM
 		_wrm.setStartAt(workrecord.getStartAt());
 		_wrm.setDurationHours(workrecord.getDurationHours());
 		_wrm.setDurationMinutes(workrecord.getDurationMinutes());
-		_wrm.setRateId(workrecord.getRateId());
 		_wrm.setBillable(workrecord.isBillable());
 		_wrm.setComment(workrecord.getComment());
 		_wrm.setModifiedAt(new Date());
