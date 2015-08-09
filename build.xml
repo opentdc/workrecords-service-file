@@ -14,6 +14,8 @@
 		<fileset dir="../${java.build.platform}/services-generic/lib/" includes="*.jar" />
 		<fileset dir="../${java.build.platform}/services-file/lib/" includes="*.jar" />
 		<fileset dir="../${java.build.platform}/workrecords-service/lib/" includes="*.jar" />
+		<fileset dir="../${java.build.platform}/tags-service/lib/" includes="*.jar" />
+		<fileset dir="../${java.build.platform}/tags-service-file/lib/" includes="*.jar" />
 		<fileset dir="../opt/google/${java.build.platform}/gson/lib/" includes="*.jar" />
 	</path>
 

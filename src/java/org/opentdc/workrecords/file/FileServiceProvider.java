@@ -40,29 +40,42 @@ import org.opentdc.service.exception.DuplicateException;
 import org.opentdc.service.exception.InternalServerErrorException;
 import org.opentdc.service.exception.NotFoundException;
 import org.opentdc.service.exception.ValidationException;
+import org.opentdc.util.LanguageCode;
 import org.opentdc.util.PrettyPrinter;
 import org.opentdc.workrecords.ServiceProvider;
+import org.opentdc.workrecords.TagRefModel;
+import org.opentdc.workrecords.TaggedWorkRecord;
 import org.opentdc.workrecords.WorkRecordModel;
 
-public class FileServiceProvider extends AbstractFileServiceProvider<WorkRecordModel> implements ServiceProvider {
+public class FileServiceProvider extends AbstractFileServiceProvider<TaggedWorkRecord> implements ServiceProvider {
 
-	protected static Map<String, WorkRecordModel> index = new HashMap<String, WorkRecordModel>();
+	protected static Map<String, TaggedWorkRecord> index = new HashMap<String, TaggedWorkRecord>();
+	protected static Map<String, TagRefModel> tagRefIndex = new HashMap<String, TagRefModel>();
 	protected static final Logger logger = Logger.getLogger(FileServiceProvider.class.getName());
 
+	/**
+	 * Constructor.
+	 * @param context the servlet context (for config)
+	 * @param prefix the directory name where the seed and data.json reside (typically the classname of the service)
+	 * @throws IOException
+	 */
 	public FileServiceProvider(
 		ServletContext context, 
 		String prefix
 	) throws IOException {
 		super(context, prefix);
 		if (index == null) {
-			index = new HashMap<String, WorkRecordModel>();
-			List<WorkRecordModel> _workRecords = importJson();
-			for (WorkRecordModel _workRecord : _workRecords) {
-				index.put(_workRecord.getId(), _workRecord);
+			index = new HashMap<String, TaggedWorkRecord>();
+			List<TaggedWorkRecord> _workRecords = importJson();
+			for (TaggedWorkRecord _workRecord : _workRecords) {
+				index.put(_workRecord.getModel().getId(), _workRecord);
 			}
 		}
 	}
 
+	/* (non-Javadoc)
+	 * @see org.opentdc.workrecords.ServiceProvider#listWorkRecords(java.lang.String, java.lang.String, int, int)
+	 */
 	@Override
 	public ArrayList<WorkRecordModel> listWorkRecords(
 		String query,
@@ -70,7 +83,10 @@ public class FileServiceProvider extends AbstractFileServiceProvider<WorkRecordM
 		int position,
 		int size
 	) {
-		ArrayList<WorkRecordModel> _workRecords = new ArrayList<WorkRecordModel>(index.values());
+		ArrayList<WorkRecordModel> _workRecords = new ArrayList<WorkRecordModel>();
+		for (TaggedWorkRecord _taggedWR : index.values()) {
+			_workRecords.add(_taggedWR.getModel());
+		}
 		Collections.sort(_workRecords, WorkRecordModel.WorkRecordComparator);
 		ArrayList<WorkRecordModel> _selection = new ArrayList<WorkRecordModel>();
 		for (int i = 0; i < _workRecords.size(); i++) {
@@ -83,6 +99,9 @@ public class FileServiceProvider extends AbstractFileServiceProvider<WorkRecordM
 		return _selection;
 	}
 
+	/* (non-Javadoc)
+	 * @see org.opentdc.workrecords.ServiceProvider#createWorkRecord(org.opentdc.workrecords.WorkRecordModel)
+	 */
 	@Override
 	public WorkRecordModel createWorkRecord(
 			WorkRecordModel workrecord) 
@@ -133,7 +152,9 @@ public class FileServiceProvider extends AbstractFileServiceProvider<WorkRecordM
 		workrecord.setCreatedBy(getPrincipal());
 		workrecord.setModifiedAt(_date);
 		workrecord.setModifiedBy(getPrincipal());
-		index.put(_id, workrecord);
+		TaggedWorkRecord _taggedWR = new TaggedWorkRecord();
+		_taggedWR.setModel(workrecord);
+		index.put(_id, _taggedWR);
 		logger.info("createWorkRecord() -> " + PrettyPrinter.prettyPrintAsJSON(workrecord));
 		if (isPersistent) {
 			exportJson(index.values());
@@ -141,89 +162,260 @@ public class FileServiceProvider extends AbstractFileServiceProvider<WorkRecordM
 		return workrecord;
 	}
 	
+	/* (non-Javadoc)
+	 * @see org.opentdc.workrecords.ServiceProvider#readWorkRecord(java.lang.String)
+	 */
 	@Override
 	public WorkRecordModel readWorkRecord(
 			String id) 
 			throws NotFoundException {
-		WorkRecordModel _workrecord = index.get(id);
-		if (_workrecord == null) {
-			throw new NotFoundException("workrecord <" + id
-					+ "> was not found.");
-		}
+		WorkRecordModel _workrecord = readTaggedWorkRecord(id).getModel();
 		logger.info("readWorkRecord(" + id + ") -> " + _workrecord);
 		return _workrecord;
 	}
+	
+	/**
+	 * Retrieve the TaggedWorkRecord based on the id of the WorkRecord.
+	 * @param id the unique id of the resource
+	 * @return the TaggedWorkRecord that contains the WorkRecord as its model
+	 * @throws NotFoundException if no workrecord with this id was found
+	 */
+	private static TaggedWorkRecord readTaggedWorkRecord(
+			String id)
+			throws NotFoundException {
+		TaggedWorkRecord _taggedWR = index.get(id);
+		if (_taggedWR == null) {
+			throw new NotFoundException("no workrecord with id <" + id + "> was found.");			
+		}
+		logger.info("readTaggedWorkRecord(" + id + ") -> " + PrettyPrinter.prettyPrintAsJSON(_taggedWR));
+		return _taggedWR;
+	}
+	
+	/**
+	 * Retrieve a WorkRecordModel by its ID.
+	 * @param id the ID of the workrecord
+	 * @return the workrecord found
+	 * @throws NotFoundException if no workrecords with such an ID was found
+	 */
+	public static WorkRecordModel getWorkRecordModel(
+			String id) 
+			throws NotFoundException {
+		return readTaggedWorkRecord(id).getModel();
+	}
 
+
+	/* (non-Javadoc)
+	 * @see org.opentdc.workrecords.ServiceProvider#updateWorkRecord(java.lang.String, org.opentdc.workrecords.WorkRecordModel)
+	 */
 	@Override
 	public WorkRecordModel updateWorkRecord(
 		String id,
-		WorkRecordModel workrecord
-	) throws NotFoundException, ValidationException
+		WorkRecordModel workrecord) 
+				throws NotFoundException, ValidationException
 	{
-		logger.info("updateWorkRecord(" + id + ", " + PrettyPrinter.prettyPrintAsJSON(workrecord) + ")");
-		WorkRecordModel _wrm = index.get(id);
-		if(_wrm == null) {
+		TaggedWorkRecord _taggedWR = readTaggedWorkRecord(id);
+		WorkRecordModel _model = _taggedWR.getModel();		
+		if(_model == null) {
 			throw new NotFoundException("workrecord <" + id + "> was not found.");
 		}
-		if (! _wrm.getCreatedAt().equals(workrecord.getCreatedAt())) {
+		if (! _model.getCreatedAt().equals(workrecord.getCreatedAt())) {
 			logger.warning("workrecord <" + id + ">: ignoring createdAt value <" + 
 					workrecord.getCreatedAt().toString() + "> because it was set on the client.");
 		}
-		if (! _wrm.getCreatedBy().equalsIgnoreCase(workrecord.getCreatedBy())) {
+		if (! _model.getCreatedBy().equalsIgnoreCase(workrecord.getCreatedBy())) {
 			logger.warning("workrecord <" + id + ">: ignoring createdBy value <" +
 					workrecord.getCreatedBy() + ">: because it was set on the client.");		
 		}
-		if (! _wrm.getCompanyId().equalsIgnoreCase(workrecord.getCompanyId())) {
+		if (! _model.getCompanyId().equalsIgnoreCase(workrecord.getCompanyId())) {
 			throw new ValidationException("workrecord <" + id + 
 					">: it is not allowed to change the companyId.");
 		}
-		if (! _wrm.getProjectId().equalsIgnoreCase(workrecord.getProjectId())) {
+		if (! _model.getProjectId().equalsIgnoreCase(workrecord.getProjectId())) {
 			throw new ValidationException("workrecord <" + id + 
 					">: it is not allowed to change the projectId.");
 		}
-		if (! _wrm.getResourceId().equalsIgnoreCase(workrecord.getResourceId())) {
+		if (! _model.getResourceId().equalsIgnoreCase(workrecord.getResourceId())) {
 			throw new ValidationException("workrecord <" + id + 
 					">: it is not allowed to change the resourceId.");
 		}
-		if (! _wrm.getCompanyTitle().equalsIgnoreCase(workrecord.getCompanyTitle())) {
+		if (! _model.getCompanyTitle().equalsIgnoreCase(workrecord.getCompanyTitle())) {
 			logger.warning("workrecord <" + id + ">: ignoring companyTitle value <" +
 					workrecord.getCompanyTitle() + ">, because it is a derived attribute and can not be changed.");
 		}
-		if (! _wrm.getProjectTitle().equalsIgnoreCase(workrecord.getProjectTitle())) {
+		if (! _model.getProjectTitle().equalsIgnoreCase(workrecord.getProjectTitle())) {
 			logger.warning("workrecord <" + id + ">: ignoring projectTitle value <" +
 					workrecord.getProjectTitle() + ">, because it is a derived attribute and can not be changed.");
 		}
-		_wrm.setStartAt(workrecord.getStartAt());
-		_wrm.setDurationHours(workrecord.getDurationHours());
-		_wrm.setDurationMinutes(workrecord.getDurationMinutes());
-		_wrm.setBillable(workrecord.isBillable());
-		_wrm.setComment(workrecord.getComment());
-		_wrm.setModifiedAt(new Date());
-		_wrm.setModifiedBy(getPrincipal());
-		index.put(id, _wrm);
-		logger.info("updateWorkRecord(" + id + ") -> " + PrettyPrinter.prettyPrintAsJSON(_wrm));
+		_model.setStartAt(workrecord.getStartAt());
+		_model.setDurationHours(workrecord.getDurationHours());
+		_model.setDurationMinutes(workrecord.getDurationMinutes());
+		_model.setBillable(workrecord.isBillable());
+		_model.setComment(workrecord.getComment());
+		_model.setModifiedAt(new Date());
+		_model.setModifiedBy(getPrincipal());
+		_taggedWR.setModel(_model);
+		index.put(id, _taggedWR);
+		logger.info("updateWorkRecord(" + id + ") -> " + PrettyPrinter.prettyPrintAsJSON(_model));
 		if (isPersistent) {
 			exportJson(index.values());
 		}
-		return _wrm;
+		return _model;
 	}
 
 	@Override
 	public void deleteWorkRecord(
 			String id) 
 		throws NotFoundException, InternalServerErrorException {
-		WorkRecordModel _workrecord = index.get(id);
-		if (_workrecord == null) {
-			throw new NotFoundException("workRecord <" + id
-					+ "> was not found.");
+		TaggedWorkRecord _taggedWR = readTaggedWorkRecord(id);
+		// remove all tagRefs of this TaggedWorkRecord from tagRefIndex	
+		for (TagRefModel _tagRef : _taggedWR.getTagRefs()) {
+			if (tagRefIndex.remove(_tagRef.getId()) == null) {
+				throw new InternalServerErrorException("tagRef <" + _tagRef.getId()
+						+ "> can not be removed, because it does not exist in the tagRefIndex");
+			}
 		}
 		if (index.remove(id) == null) {
 			throw new InternalServerErrorException("workRecord <" + id
 					+ "> can not be removed, because it does not exist in the index.");
 		}
-		logger.info("deleteWorkRecord(" + id + ")");
+		logger.info("deleteWorkRecord(" + id + ") -> OK");
 		if (isPersistent) {
 			exportJson(index.values());
 		}
+	}
+
+	/************************************** TagRef ************************************/
+	/* (non-Javadoc)
+	 * @see org.opentdc.workrecords.ServiceProvider#listTagRefs(java.lang.String, java.lang.String, java.lang.String, int, int)
+	 */
+	@Override
+	public List<TagRefModel> listTagRefs(
+			String id, 
+			String queryType,
+			String query, 
+			int position, 
+			int size) 
+	{
+		List<TagRefModel> _tags = readTaggedWorkRecord(id).getTagRefs();
+		Collections.sort(_tags, TagRefModel.TagRefComparator);
+		
+		ArrayList<TagRefModel> _selection = new ArrayList<TagRefModel>();
+		for (int i = 0; i < _tags.size(); i++) {
+			if (i >= position && i < (position + size)) {
+				_selection.add(_tags.get(i));
+			}
+		}
+		logger.info("listTagRefs(<" + id + ">, <" + queryType + ">, <" + query + 
+				">, <" + position + ">, <" + size + ">) -> " + _selection.size()
+				+ " values");
+		return _selection;
+	}
+	
+	/* (non-Javadoc)
+	 * @see org.opentdc.workrecords.ServiceProvider#createTagRef(java.lang.String, org.opentdc.workrecords.TagRefModel)
+	 */
+	@Override
+	public TagRefModel createTagRef(
+			String workRecordId, 
+			TagRefModel model)
+			throws DuplicateException, ValidationException 
+	{
+		TaggedWorkRecord _taggedWR = readTaggedWorkRecord(workRecordId);
+		if (model.getTagId() == null || model.getTagId().isEmpty()) {
+			throw new ValidationException("TagRef in WorkRecord <" + workRecordId + "> must contain a valid tagId.");
+		}
+		if (model.getText() != null && !model.getText().isEmpty()) {
+			logger.warning("TagRef in WorkRecord <" + workRecordId +  
+					">: text is a derived field and will be overwritten.");
+		}
+		// a tag can be contained as a TagRef within a WorkRecord 0 or 1 times
+		if (_taggedWR.containsTag(model.getTagId())) {
+			throw new DuplicateException("TagRef with Tag <" + model.getTagId() + 
+					"> exists already in WorkRecord <" + workRecordId + ">.");
+		}
+		
+		if (lang == null) {
+			logger.warning("lang is null; using default");
+			lang = LanguageCode.getDefaultLanguageCode();
+		}
+		model.setText(org.opentdc.tags.file.FileServiceProvider.getLocalizedText(model.getTagId(), lang));		
+		String _id = model.getId();
+		if (_id == null || _id.isEmpty()) {
+			_id = UUID.randomUUID().toString();
+		} else {
+			if (tagRefIndex.get(_id) != null) {
+				throw new DuplicateException("TagRef with id <" + _id + 
+						"> exists already in tagRefIndex.");
+			}
+			else {
+				throw new ValidationException("TagRef with id <" + _id +
+						"> contains an ID generated on the client. This is not allowed.");
+			}
+		}
+
+		model.setId(_id);
+		model.setCreatedAt(new Date());
+		model.setCreatedBy(getPrincipal());
+		
+		tagRefIndex.put(_id, model);
+		_taggedWR.addTagRef(model);
+		
+		logger.info("createTagRef(" + workRecordId + ") -> " + PrettyPrinter.prettyPrintAsJSON(model));
+		if (isPersistent) {
+			exportJson(index.values());
+		}
+		return model;
+	}
+
+	/* (non-Javadoc)
+	 * @see org.opentdc.workrecords.ServiceProvider#readTagRef(java.lang.String, java.lang.String)
+	 */
+	@Override
+	public TagRefModel readTagRef(
+			String workRecordId, 
+			String tagRefId)
+			throws NotFoundException 
+	{
+		readTaggedWorkRecord(workRecordId);		// verify that the workrecord exists
+		TagRefModel _tagRef = tagRefIndex.get(tagRefId);
+		if (_tagRef == null) {
+			throw new NotFoundException("TagRef <" + workRecordId + "/tagref/" + tagRefId +
+					"> was not found.");
+		}
+		logger.info("readRateRef(" + workRecordId + ", " + tagRefId + ") -> "
+				+ PrettyPrinter.prettyPrintAsJSON(_tagRef));
+		return _tagRef;
+	}
+
+	/* (non-Javadoc)
+	 * @see org.opentdc.workrecords.ServiceProvider#deleteTagRef(java.lang.String, java.lang.String)
+	 */
+	@Override
+	public void deleteTagRef(
+			String workRecordId, 
+			String tagRefId)
+			throws NotFoundException, InternalServerErrorException 
+	{
+		TaggedWorkRecord _taggedWR = readTaggedWorkRecord(workRecordId);
+		TagRefModel _tagRef = tagRefIndex.get(tagRefId);
+		if (_tagRef == null) {
+			throw new NotFoundException("TagRef <" + workRecordId + "/tagref/" + tagRefId +
+					"> was not found.");
+		}
+		
+		// 1) remove the TagRef from its Resource
+		if (_taggedWR.removeTagRef(_tagRef) == false) {
+			throw new InternalServerErrorException("TagRef <" + workRecordId + "/tagref/" + tagRefId
+					+ "> can not be removed, because it is an orphan.");
+		}
+		// 2) remove the TagRef from the tagRefIndex
+		if (tagRefIndex.remove(_tagRef.getId()) == null) {
+			throw new InternalServerErrorException("TagRef <" + workRecordId + "/tagref/" + tagRefId
+					+ "> can not be removed, because it does not exist in the index.");
+		}	
+		logger.info("deleteTagRef(" + workRecordId + ", " + tagRefId + ") -> OK");
+		if (isPersistent) {
+			exportJson(index.values());
+		}				
 	}
 }
