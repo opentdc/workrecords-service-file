@@ -36,6 +36,7 @@ import java.util.logging.Logger;
 import javax.servlet.ServletContext;
 
 import org.opentdc.file.AbstractFileServiceProvider;
+import org.opentdc.resources.ResourceModel;
 import org.opentdc.service.exception.DuplicateException;
 import org.opentdc.service.exception.InternalServerErrorException;
 import org.opentdc.service.exception.NotFoundException;
@@ -46,6 +47,8 @@ import org.opentdc.workrecords.ServiceProvider;
 import org.opentdc.workrecords.TagRefModel;
 import org.opentdc.workrecords.TaggedWorkRecord;
 import org.opentdc.workrecords.WorkRecordModel;
+import org.opentdc.wtt.CompanyModel;
+import org.opentdc.wtt.ProjectModel;
 
 public class FileServiceProvider extends AbstractFileServiceProvider<TaggedWorkRecord> implements ServiceProvider {
 
@@ -126,22 +129,35 @@ public class FileServiceProvider extends AbstractFileServiceProvider<TaggedWorkR
 			throw new ValidationException("workrecord <" + _id + 
 					"> must contain a valid companyId.");
 		}
-		if (workrecord.getCompanyTitle() == null || workrecord.getCompanyTitle().isEmpty()) {
-			throw new ValidationException("workrecord <" + _id + 
-					"> must contain a valid companyTitle.");
+		if (workrecord.getCompanyTitle() != null && !workrecord.getCompanyTitle().isEmpty()) {
+			logger.warning("workrecord <" + _id +  
+					">: companyTitle is a derived field and will be overwritten.");
 		}
+		CompanyModel _companyModel = org.opentdc.wtt.file.FileServiceProvider.getCompany(workrecord.getCompanyId());
+		workrecord.setCompanyTitle(_companyModel.getTitle());
+
 		if (workrecord.getProjectId() == null || workrecord.getProjectId().isEmpty()) {
 			throw new ValidationException("workrecord <" + _id + 
 					"> must contain a valid projectId.");
 		}
-		if (workrecord.getProjectTitle() == null || workrecord.getProjectTitle().isEmpty()) {
-			throw new ValidationException("workrecord <" + _id + 
-					"> must contain a valid projectTitle.");
+		if (workrecord.getProjectTitle() != null && !workrecord.getProjectTitle().isEmpty()) {
+			logger.warning("workrecord <" + _id +  
+					">: projectTitle is a derived field and will be overwritten.");
 		}
+		ProjectModel _projectModel = org.opentdc.wtt.file.FileServiceProvider.getProject(workrecord.getProjectId());
+		workrecord.setProjectTitle(_projectModel.getTitle());
+		
 		if (workrecord.getResourceId() == null || workrecord.getResourceId().isEmpty()) {
 			throw new ValidationException("workrecord <" + _id + 
 					"> must contain a valid resourceId.");
 		}
+		if (workrecord.getResourceName() != null && !workrecord.getResourceName().isEmpty()) {
+			logger.warning("workrecord <" + _id +  
+					">: resourceName is a derived field and will be overwritten.");
+		}
+		ResourceModel _resourceModel = org.opentdc.resources.file.FileServiceProvider.getResourceModel(workrecord.getResourceId());
+		workrecord.setResourceName(_resourceModel.getName());
+		
 		if (workrecord.getStartAt() == null) {
 			throw new ValidationException("workrecord <" + _id + 
 					"> must contain a valid startAt date.");
