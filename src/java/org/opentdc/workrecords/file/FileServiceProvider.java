@@ -133,8 +133,14 @@ public class FileServiceProvider extends AbstractFileServiceProvider<TaggedWorkR
 			logger.warning("workrecord <" + _id +  
 					">: companyTitle is a derived field and will be overwritten.");
 		}
-		CompanyModel _companyModel = org.opentdc.wtt.file.FileServiceProvider.getCompany(workrecord.getCompanyId());
-		workrecord.setCompanyTitle(_companyModel.getTitle());
+		try {
+			CompanyModel _companyModel = org.opentdc.wtt.file.FileServiceProvider.getCompany(workrecord.getCompanyId());
+			workrecord.setCompanyTitle(_companyModel.getTitle());			
+		}
+		catch (NotFoundException _ex) {
+			throw new ValidationException("workrecord <" + _id + 
+					"> contains an invalid companyId <" + workrecord.getCompanyId() + ">.");
+		}
 
 		if (workrecord.getProjectId() == null || workrecord.getProjectId().isEmpty()) {
 			throw new ValidationException("workrecord <" + _id + 
@@ -144,8 +150,14 @@ public class FileServiceProvider extends AbstractFileServiceProvider<TaggedWorkR
 			logger.warning("workrecord <" + _id +  
 					">: projectTitle is a derived field and will be overwritten.");
 		}
-		ProjectModel _projectModel = org.opentdc.wtt.file.FileServiceProvider.getProject(workrecord.getProjectId());
-		workrecord.setProjectTitle(_projectModel.getTitle());
+		try {
+			ProjectModel _projectModel = org.opentdc.wtt.file.FileServiceProvider.getProject(workrecord.getProjectId());
+			workrecord.setProjectTitle(_projectModel.getTitle());
+		}
+		catch (NotFoundException _ex) {
+			throw new ValidationException("workrecord <" + _id + 
+					"> contains an invalid projectId <" + workrecord.getProjectId() + ">.");
+		}
 		
 		if (workrecord.getResourceId() == null || workrecord.getResourceId().isEmpty()) {
 			throw new ValidationException("workrecord <" + _id + 
@@ -155,8 +167,14 @@ public class FileServiceProvider extends AbstractFileServiceProvider<TaggedWorkR
 			logger.warning("workrecord <" + _id +  
 					">: resourceName is a derived field and will be overwritten.");
 		}
-		ResourceModel _resourceModel = org.opentdc.resources.file.FileServiceProvider.getResourceModel(workrecord.getResourceId());
-		workrecord.setResourceName(_resourceModel.getName());
+		try {
+			ResourceModel _resourceModel = org.opentdc.resources.file.FileServiceProvider.getResourceModel(workrecord.getResourceId());
+			workrecord.setResourceName(_resourceModel.getName());
+		}
+		catch (NotFoundException _ex) {
+			throw new ValidationException("workrecord <" + _id + 
+					"> contains an invalid resourceId <" + workrecord.getResourceId() + ">.");
+		}
 		
 		if (workrecord.getStartAt() == null) {
 			throw new ValidationException("workrecord <" + _id + 
@@ -242,26 +260,60 @@ public class FileServiceProvider extends AbstractFileServiceProvider<TaggedWorkR
 			logger.warning("workrecord <" + id + ">: ignoring createdBy value <" +
 					workrecord.getCreatedBy() + ">: because it was set on the client.");		
 		}
+		// company (id and title)
 		if (! _model.getCompanyId().equalsIgnoreCase(workrecord.getCompanyId())) {
 			throw new ValidationException("workrecord <" + id + 
 					">: it is not allowed to change the companyId.");
-		}
-		if (! _model.getProjectId().equalsIgnoreCase(workrecord.getProjectId())) {
-			throw new ValidationException("workrecord <" + id + 
-					">: it is not allowed to change the projectId.");
-		}
-		if (! _model.getResourceId().equalsIgnoreCase(workrecord.getResourceId())) {
-			throw new ValidationException("workrecord <" + id + 
-					">: it is not allowed to change the resourceId.");
 		}
 		if (! _model.getCompanyTitle().equalsIgnoreCase(workrecord.getCompanyTitle())) {
 			logger.warning("workrecord <" + id + ">: ignoring companyTitle value <" +
 					workrecord.getCompanyTitle() + ">, because it is a derived attribute and can not be changed.");
 		}
+		try {
+			CompanyModel _companyModel = org.opentdc.wtt.file.FileServiceProvider.getCompany(workrecord.getCompanyId());
+			_model.setCompanyTitle(_companyModel.getTitle());			
+		}
+		catch (NotFoundException _ex) {
+			throw new ValidationException("workrecord <" + id + 
+					"> contains an invalid companyId <" + workrecord.getCompanyId() + ">.");
+		}
+		
+		// project (id and title)
+		if (! _model.getProjectId().equalsIgnoreCase(workrecord.getProjectId())) {
+			throw new ValidationException("workrecord <" + id + 
+					">: it is not allowed to change the projectId.");
+		}
 		if (! _model.getProjectTitle().equalsIgnoreCase(workrecord.getProjectTitle())) {
 			logger.warning("workrecord <" + id + ">: ignoring projectTitle value <" +
 					workrecord.getProjectTitle() + ">, because it is a derived attribute and can not be changed.");
 		}
+		try {
+			ProjectModel _projectModel = org.opentdc.wtt.file.FileServiceProvider.getProject(workrecord.getProjectId());
+			_model.setProjectTitle(_projectModel.getTitle());
+		}
+		catch (NotFoundException _ex) {
+			throw new ValidationException("workrecord <" + id + 
+					"> contains an invalid projectId <" + workrecord.getProjectId() + ">.");
+		}
+		
+		// resource (id and name)
+		if (! _model.getResourceId().equalsIgnoreCase(workrecord.getResourceId())) {
+			throw new ValidationException("workrecord <" + id + 
+					">: it is not allowed to change the resourceId.");
+		}
+		if (! _model.getResourceName().equalsIgnoreCase(workrecord.getResourceName())) {
+			logger.warning("workrecord <" + id + ">: ignoring resourceName value <" +
+					workrecord.getResourceName() + ">, because it is a derived attribute and can not be changed.");
+		}
+		try {
+			ResourceModel _resourceModel = org.opentdc.resources.file.FileServiceProvider.getResourceModel(workrecord.getResourceId());
+			_model.setResourceName(_resourceModel.getName());
+		}
+		catch (NotFoundException _ex) {
+			throw new ValidationException("workrecord <" + id + 
+					"> contains an invalid resourceId <" + workrecord.getResourceId() + ">.");
+		}
+
 		_model.setStartAt(workrecord.getStartAt());
 		_model.setDurationHours(workrecord.getDurationHours());
 		_model.setDurationMinutes(workrecord.getDurationMinutes());
