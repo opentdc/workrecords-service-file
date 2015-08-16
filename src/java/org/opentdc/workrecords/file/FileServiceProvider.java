@@ -318,6 +318,7 @@ public class FileServiceProvider extends AbstractFileServiceProvider<TaggedWorkR
 		_model.setDurationHours(workrecord.getDurationHours());
 		_model.setDurationMinutes(workrecord.getDurationMinutes());
 		_model.setBillable(workrecord.isBillable());
+		_model.setRunning(workrecord.isRunning());
 		_model.setComment(workrecord.getComment());
 		_model.setModifiedAt(new Date());
 		_model.setModifiedBy(getPrincipal());
@@ -392,10 +393,6 @@ public class FileServiceProvider extends AbstractFileServiceProvider<TaggedWorkR
 		if (model.getTagId() == null || model.getTagId().isEmpty()) {
 			throw new ValidationException("TagRef in WorkRecord <" + workRecordId + "> must contain a valid tagId.");
 		}
-		if (model.getText() != null && !model.getText().isEmpty()) {
-			logger.warning("TagRef in WorkRecord <" + workRecordId +  
-					">: text is a derived field and will be overwritten.");
-		}
 		// a tag can be contained as a TagRef within a WorkRecord 0 or 1 times
 		if (_taggedWR.containsTag(model.getTagId())) {
 			throw new DuplicateException("TagRef with Tag <" + model.getTagId() + 
@@ -406,7 +403,6 @@ public class FileServiceProvider extends AbstractFileServiceProvider<TaggedWorkR
 			logger.warning("lang is null; using default");
 			lang = LanguageCode.getDefaultLanguageCode();
 		}
-		model.setText(org.opentdc.tags.file.FileServiceProvider.getLocalizedText(model.getTagId(), lang));		
 		String _id = model.getId();
 		if (_id == null || _id.isEmpty()) {
 			_id = UUID.randomUUID().toString();
