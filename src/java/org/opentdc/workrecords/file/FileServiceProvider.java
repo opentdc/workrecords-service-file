@@ -319,6 +319,7 @@ public class FileServiceProvider extends AbstractFileServiceProvider<TaggedWorkR
 		_model.setDurationMinutes(workrecord.getDurationMinutes());
 		_model.setBillable(workrecord.isBillable());
 		_model.setRunning(workrecord.isRunning());
+		_model.setPaused(workrecord.isPaused());
 		_model.setComment(workrecord.getComment());
 		_model.setModifiedAt(new Date());
 		_model.setModifiedBy(getPrincipal());
