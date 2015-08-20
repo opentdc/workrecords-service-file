@@ -47,14 +47,16 @@ import org.opentdc.workrecords.ServiceProvider;
 import org.opentdc.workrecords.TagRefModel;
 import org.opentdc.workrecords.TaggedWorkRecord;
 import org.opentdc.workrecords.WorkRecordModel;
+import org.opentdc.workrecords.WorkRecordQueryHandler;
 import org.opentdc.wtt.CompanyModel;
 import org.opentdc.wtt.ProjectModel;
 
 public class FileServiceProvider extends AbstractFileServiceProvider<TaggedWorkRecord> implements ServiceProvider {
 
-	protected static Map<String, TaggedWorkRecord> index = new HashMap<String, TaggedWorkRecord>();
-	protected static Map<String, TagRefModel> tagRefIndex = new HashMap<String, TagRefModel>();
-	protected static final Logger logger = Logger.getLogger(FileServiceProvider.class.getName());
+	protected static Map<String, TaggedWorkRecord> index = null;
+	protected static Map<String, TagRefModel> tagRefIndex = null;
+	protected static Logger logger = null;
+	protected static boolean isResourceDerived = true;
 
 	/**
 	 * Constructor.
@@ -73,7 +75,13 @@ public class FileServiceProvider extends AbstractFileServiceProvider<TaggedWorkR
 			for (TaggedWorkRecord _workRecord : _workRecords) {
 				index.put(_workRecord.getModel().getId(), _workRecord);
 			}
+			tagRefIndex = new HashMap<String, TagRefModel>();
+			String _buf = context.getInitParameter("isResourceDerived");
+			logger = Logger.getLogger(FileServiceProvider.class.getName());
+			logger.info("init parameter <isResourceDerived> (_buf)=<" + _buf + ">");
+			isResourceDerived = Boolean.parseBoolean(context.getInitParameter("isResourceDerived"));
 		}
+		logger.info("isResourceDerived=<" + isResourceDerived + ">") ;
 	}
 
 	/* (non-Javadoc)
@@ -86,15 +94,20 @@ public class FileServiceProvider extends AbstractFileServiceProvider<TaggedWorkR
 		int position,
 		int size
 	) {
-		ArrayList<WorkRecordModel> _workRecords = new ArrayList<WorkRecordModel>();
-		for (TaggedWorkRecord _taggedWR : index.values()) {
-			_workRecords.add(_taggedWR.getModel());
-		}
-		Collections.sort(_workRecords, WorkRecordModel.WorkRecordComparator);
+	//	ArrayList<WorkRecordModel> _workRecords = new ArrayList<WorkRecordModel>();
+	//	for (TaggedWorkRecord _taggedWR : index.values()) {
+	//		_workRecords.add(_taggedWR.getModel());
+	//	}
+	//	Collections.sort(_workRecords, WorkRecordModel.WorkRecordComparator);
+		List<TaggedWorkRecord> _list = new ArrayList<TaggedWorkRecord>(index.values());
+		Collections.sort(_list, TaggedWorkRecord.TaggedWorkRecordComparator);
+		WorkRecordQueryHandler _queryHandler = new WorkRecordQueryHandler(query);
 		ArrayList<WorkRecordModel> _selection = new ArrayList<WorkRecordModel>();
-		for (int i = 0; i < _workRecords.size(); i++) {
+		for (int i = 0; i < _list.size(); i++) {
 			if (i >= position && i < (position + size)) {
-				_selection.add(_workRecords.get(i));
+				if (_queryHandler.evaluate(_list.get(i)) == true) {
+					_selection.add(_list.get(i).getModel());
+				}
 			}			
 		}
 		logger.info("list(<" + query + ">, <" + queryType + 
@@ -163,17 +176,24 @@ public class FileServiceProvider extends AbstractFileServiceProvider<TaggedWorkR
 			throw new ValidationException("workrecord <" + _id + 
 					"> must contain a valid resourceId.");
 		}
-		if (workrecord.getResourceName() != null && !workrecord.getResourceName().isEmpty()) {
-			logger.warning("workrecord <" + _id +  
+		if (isResourceDerived == true) {
+			if (workrecord.getResourceName() != null && !workrecord.getResourceName().isEmpty()) {
+				logger.warning("workrecord <" + _id +  
 					">: resourceName is a derived field and will be overwritten.");
-		}
-		try {
-			ResourceModel _resourceModel = org.opentdc.resources.file.FileServiceProvider.getResourceModel(workrecord.getResourceId());
-			workrecord.setResourceName(_resourceModel.getName());
-		}
-		catch (NotFoundException _ex) {
-			throw new ValidationException("workrecord <" + _id + 
+			}
+			try {
+				ResourceModel _resourceModel = org.opentdc.resources.file.FileServiceProvider.getResourceModel(workrecord.getResourceId());
+				workrecord.setResourceName(_resourceModel.getName());
+			}
+			catch (NotFoundException _ex) {
+				throw new ValidationException("workrecord <" + _id + 
 					"> contains an invalid resourceId <" + workrecord.getResourceId() + ">.");
+			}
+		} else {		// TODO: this is a workaround for the Arbalo demo; resourceName is not derived, but a mandatory field
+			if (workrecord.getResourceName() == null || workrecord.getResourceName().isEmpty()) {
+				throw new ValidationException("workrecord <" + _id + 
+						"> must contain a valid resourceName.");
+			}
 		}
 		
 		if (workrecord.getStartAt() == null) {
@@ -301,17 +321,24 @@ public class FileServiceProvider extends AbstractFileServiceProvider<TaggedWorkR
 			throw new ValidationException("workrecord <" + id + 
 					">: it is not allowed to change the resourceId.");
 		}
-		if (! _model.getResourceName().equalsIgnoreCase(workrecord.getResourceName())) {
-			logger.warning("workrecord <" + id + ">: ignoring resourceName value <" +
-					workrecord.getResourceName() + ">, because it is a derived attribute and can not be changed.");
+		if (isResourceDerived == true) {
+			if (! _model.getResourceName().equalsIgnoreCase(workrecord.getResourceName())) {
+				logger.warning("workrecord <" + id + ">: ignoring resourceName value <" +
+						workrecord.getResourceName() + ">, because it is a derived attribute and can not be changed.");
+			}
+			try {
+				ResourceModel _resourceModel = org.opentdc.resources.file.FileServiceProvider.getResourceModel(workrecord.getResourceId());
+				_model.setResourceName(_resourceModel.getName());
+			}
+			catch (NotFoundException _ex) {
+				throw new ValidationException("workrecord <" + id + 
+						"> contains an invalid resourceId <" + workrecord.getResourceId() + ">.");
+			}
 		}
-		try {
-			ResourceModel _resourceModel = org.opentdc.resources.file.FileServiceProvider.getResourceModel(workrecord.getResourceId());
-			_model.setResourceName(_resourceModel.getName());
-		}
-		catch (NotFoundException _ex) {
-			throw new ValidationException("workrecord <" + id + 
-					"> contains an invalid resourceId <" + workrecord.getResourceId() + ">.");
+		else {		// TODO: workaround for Arbalo event: resourceName is mandatory attribute (instead of derived)
+			if (_model.getResourceName() == null || _model.getResourceName().length() == 0) {
+				throw new ValidationException("updating resource <" + id + ">: new data must have a valid resourceName.");
+			}
 		}
 
 		_model.setStartAt(workrecord.getStartAt());
