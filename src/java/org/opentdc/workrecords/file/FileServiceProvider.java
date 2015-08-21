@@ -30,6 +30,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.StringTokenizer;
 import java.util.UUID;
 import java.util.logging.Logger;
 
@@ -121,7 +122,8 @@ public class FileServiceProvider extends AbstractFileServiceProvider<TaggedWorkR
 	@Override
 	public WorkRecordModel createWorkRecord(
 			WorkRecordModel workrecord) 
-		throws DuplicateException, ValidationException {
+		throws DuplicateException, ValidationException 
+	{
 		logger.info("createWorkRecord(" + PrettyPrinter.prettyPrintAsJSON(workrecord) + ")");
 		String _id = workrecord.getId();
 		if (_id == null || _id == "") {
@@ -209,6 +211,10 @@ public class FileServiceProvider extends AbstractFileServiceProvider<TaggedWorkR
 		TaggedWorkRecord _taggedWR = new TaggedWorkRecord();
 		_taggedWR.setModel(workrecord);
 		index.put(_id, _taggedWR);
+		
+		// generate TagRefModel composites
+		addTags(_id, workrecord.getTagIdList());
+		
 		logger.info("createWorkRecord() -> " + PrettyPrinter.prettyPrintAsJSON(workrecord));
 		if (isPersistent) {
 			exportJson(index.values());
@@ -388,8 +394,8 @@ public class FileServiceProvider extends AbstractFileServiceProvider<TaggedWorkR
 	@Override
 	public List<TagRefModel> listTagRefs(
 			String id, 
-			String queryType,
-			String query, 
+			String query,
+			String queryType, 
 			int position, 
 			int size) 
 	{
@@ -509,5 +515,21 @@ public class FileServiceProvider extends AbstractFileServiceProvider<TaggedWorkR
 		if (isPersistent) {
 			exportJson(index.values());
 		}				
+	}
+
+	// format of String tagIdList ::=  tagId{.tagId}
+	@Override
+	public List<TagRefModel> addTags(
+			String workRecordId, 
+			String tagIdList) 
+	{
+		ArrayList<TagRefModel> _tagRefs = new ArrayList<TagRefModel>();
+		if (tagIdList != null && !tagIdList.isEmpty()) {
+			StringTokenizer _st = new StringTokenizer(tagIdList, ",");
+			while (_st.hasMoreTokens()) {
+				_tagRefs.add(createTagRef(workRecordId, new TagRefModel(_st.nextToken())));
+			}
+		}
+		return _tagRefs;
 	}
 }
