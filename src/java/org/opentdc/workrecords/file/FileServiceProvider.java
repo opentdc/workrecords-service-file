@@ -45,7 +45,7 @@ import org.opentdc.service.exception.ValidationException;
 import org.opentdc.util.LanguageCode;
 import org.opentdc.util.PrettyPrinter;
 import org.opentdc.workrecords.ServiceProvider;
-import org.opentdc.workrecords.TagRefModel;
+import org.opentdc.service.TagRefModel;
 import org.opentdc.workrecords.TaggedWorkRecord;
 import org.opentdc.workrecords.WorkRecordModel;
 import org.opentdc.workrecords.WorkRecordQueryHandler;
@@ -93,13 +93,8 @@ public class FileServiceProvider extends AbstractFileServiceProvider<TaggedWorkR
 		String query,
 		String queryType,
 		int position,
-		int size
-	) {
-	//	ArrayList<WorkRecordModel> _workRecords = new ArrayList<WorkRecordModel>();
-	//	for (TaggedWorkRecord _taggedWR : index.values()) {
-	//		_workRecords.add(_taggedWR.getModel());
-	//	}
-	//	Collections.sort(_workRecords, WorkRecordModel.WorkRecordComparator);
+		int size) 
+	{
 		List<TaggedWorkRecord> _list = new ArrayList<TaggedWorkRecord>(index.values());
 		Collections.sort(_list, TaggedWorkRecord.TaggedWorkRecordComparator);
 		WorkRecordQueryHandler _queryHandler = new WorkRecordQueryHandler(query);
