@@ -35,6 +35,7 @@ import java.util.UUID;
 import java.util.logging.Logger;
 
 import javax.servlet.ServletContext;
+import javax.servlet.http.HttpServletRequest;
 
 import org.opentdc.file.AbstractFileServiceProvider;
 import org.opentdc.resources.ResourceModel;
@@ -45,6 +46,7 @@ import org.opentdc.service.exception.ValidationException;
 import org.opentdc.util.LanguageCode;
 import org.opentdc.util.PrettyPrinter;
 import org.opentdc.workrecords.ServiceProvider;
+import org.opentdc.service.ServiceUtil;
 import org.opentdc.service.TagRefModel;
 import org.opentdc.workrecords.TaggedWorkRecord;
 import org.opentdc.workrecords.WorkRecordModel;
@@ -116,6 +118,7 @@ public class FileServiceProvider extends AbstractFileServiceProvider<TaggedWorkR
 	 */
 	@Override
 	public WorkRecordModel createWorkRecord(
+			HttpServletRequest request,
 			WorkRecordModel workrecord) 
 		throws DuplicateException, ValidationException 
 	{
@@ -200,15 +203,15 @@ public class FileServiceProvider extends AbstractFileServiceProvider<TaggedWorkR
 		workrecord.setId(_id);
 		Date _date = new Date();
 		workrecord.setCreatedAt(_date);
-		workrecord.setCreatedBy(getPrincipal());
+		workrecord.setCreatedBy(ServiceUtil.getPrincipal(request));
 		workrecord.setModifiedAt(_date);
-		workrecord.setModifiedBy(getPrincipal());
+		workrecord.setModifiedBy(ServiceUtil.getPrincipal(request));
 		TaggedWorkRecord _taggedWR = new TaggedWorkRecord();
 		_taggedWR.setModel(workrecord);
 		index.put(_id, _taggedWR);
 		
 		// generate TagRefModel composites
-		addTags(_id, workrecord.getTagIdList());
+		addTags(request, _id, workrecord.getTagIdList());
 		
 		logger.info("createWorkRecord() -> " + PrettyPrinter.prettyPrintAsJSON(workrecord));
 		if (isPersistent) {
@@ -264,6 +267,7 @@ public class FileServiceProvider extends AbstractFileServiceProvider<TaggedWorkR
 	 */
 	@Override
 	public WorkRecordModel updateWorkRecord(
+		HttpServletRequest request,
 		String id,
 		WorkRecordModel workrecord) 
 				throws NotFoundException, ValidationException
@@ -350,7 +354,7 @@ public class FileServiceProvider extends AbstractFileServiceProvider<TaggedWorkR
 		_model.setPaused(workrecord.isPaused());
 		_model.setComment(workrecord.getComment());
 		_model.setModifiedAt(new Date());
-		_model.setModifiedBy(getPrincipal());
+		_model.setModifiedBy(ServiceUtil.getPrincipal(request));
 		_taggedWR.setModel(_model);
 		index.put(id, _taggedWR);
 		logger.info("updateWorkRecord(" + id + ") -> " + PrettyPrinter.prettyPrintAsJSON(_model));
@@ -414,6 +418,7 @@ public class FileServiceProvider extends AbstractFileServiceProvider<TaggedWorkR
 	 */
 	@Override
 	public TagRefModel createTagRef(
+			HttpServletRequest request,
 			String workRecordId, 
 			TagRefModel model)
 			throws DuplicateException, ValidationException 
@@ -448,7 +453,7 @@ public class FileServiceProvider extends AbstractFileServiceProvider<TaggedWorkR
 
 		model.setId(_id);
 		model.setCreatedAt(new Date());
-		model.setCreatedBy(getPrincipal());
+		model.setCreatedBy(ServiceUtil.getPrincipal(request));
 		
 		tagRefIndex.put(_id, model);
 		_taggedWR.addTagRef(model);
@@ -515,6 +520,7 @@ public class FileServiceProvider extends AbstractFileServiceProvider<TaggedWorkR
 	// format of String tagIdList ::=  tagId{.tagId}
 	@Override
 	public List<TagRefModel> addTags(
+			HttpServletRequest request,
 			String workRecordId, 
 			String tagIdList) 
 	{
@@ -522,7 +528,7 @@ public class FileServiceProvider extends AbstractFileServiceProvider<TaggedWorkR
 		if (tagIdList != null && !tagIdList.isEmpty()) {
 			StringTokenizer _st = new StringTokenizer(tagIdList, ",");
 			while (_st.hasMoreTokens()) {
-				_tagRefs.add(createTagRef(workRecordId, new TagRefModel(_st.nextToken())));
+				_tagRefs.add(createTagRef(request, workRecordId, new TagRefModel(_st.nextToken())));
 			}
 		}
 		return _tagRefs;
